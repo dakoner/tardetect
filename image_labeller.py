@@ -8,8 +8,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 NO_STATE = 0
 RESIZE = 1
 
-IMAGE_DIR=r"z:\tardigrade movies\hires_lowmag"
-
+IMAGE_DIR=r"z:\tardigrade movies\Untitled Project"
 
 #con = sqlite3.connect(os.path.join(IMAGE_DIR, "labels.sqlite")
 #labels = pandas.Dataframe(columns={"image", "label", "coords"})
@@ -20,21 +19,30 @@ def get_main_window()       :
             return item
 
 
+def createIcon(name, size=(25,25)):
+    pixmap = QtGui.QPixmap(*size)
+    pixmap.fill(getattr(QtGui.QColorConstants.Svg, name))
+    return QtGui.QIcon(pixmap)
+
 class LabelListView(QtWidgets.QListView):
     def __init__(self, model, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setModel(model)
-        filename = "labels.txt"
-        items = [line.strip() for line in open(filename).readlines()]
-        self.clearAndAddItems(items)
+        
+                
+        self.colors = [name for name in QtGui.QColorConstants.Svg.__dict__ if not name.startswith("_")]
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openMenu) 
 
+        filename = "labels.txt"
+        items = [line.strip() for line in open(filename).readlines()]
+        self.clearAndAddItems(items)
+
     def clearAndAddItems(self, elements):
         self.model().clear()
-        for element in elements:
-            item = QtGui.QStandardItem(element)
+        for i, element in enumerate(elements):
+            item = QtGui.QStandardItem(createIcon(self.colors[i]), element)
             self.model().appendRow(item)
 
     def openMenu(self, position):
@@ -133,12 +141,12 @@ class QGraphicsView(QtWidgets.QGraphicsView):
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
 class QGraphicsScene(QtWidgets.QGraphicsScene):
-    def __init__(self, main_window, label_list_model, image_label_model, *args, **kwargs):
+    def __init__(self, main_window, label_view, image_label_model, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # could main_window be parent?
         self.setParent(main_window)
         self.main_window = main_window
-        self.label_list_model = label_list_model
+        self.label_view = label_view
         self.image_label_model = image_label_model
         
     def mousePressEvent(self, event):
@@ -155,26 +163,29 @@ class QGraphicsScene(QtWidgets.QGraphicsScene):
                     start = event.buttonDownScenePos(QtCore.Qt.LeftButton)
             
                     # action = menu.exec_(self.mapToGlobal(position))
-                    items = [self.label_list_model.item(i).text() 
-                             for i in range(self.label_list_model.rowCount())]
+                    labels = [self.label_view.model().item(i).text() for i in range(self.label_view.model().rowCount())]
                     rect = QtCore.QRectF(QtCore.QPointF(0.,0.), end-start)
                     box = QGraphicsRectItem(rect)
-                    box.setPen(QtGui.QPen(QtCore.Qt.green))
                     color = QtGui.QColor(255, 255, 255, 30)
                     box.setBrush(QtGui.QBrush(color))
                     box.setPos(start)
                     self.addItem(box)
                     label, okPressed = QtWidgets.QInputDialog.getItem(self.main_window, "Set label", 
-                                                        "Label:", items, 0, False)
+                                                        "Label:", labels, 0, False)
                     if okPressed and label != '':
                         item = QtGui.QStandardItem(label)
                         item.rect = box
                         rect.item = item
+                        name = self.label_view.colors[labels.index(label)]
+                        color = getattr(QtGui.QColorConstants.Svg, name)
+                        box.setPen(QtGui.QPen(color))
                         self.image_label_model.appendRow(item)
                         
                         text = self.addSimpleText(label)
+                        text.setPen(QtGui.QPen(color))
+                        text.setBrush(QtGui.QBrush(color))
                         text.setParentItem(box)
-                        text.setPos(rect.topLeft())
+                        text.setPos(rect.topRight())
                     else:
                         self.removeItem(box)
 
@@ -198,7 +209,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.view = QGraphicsView()
         self.view.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
-        self.scene = QGraphicsScene(self, self.label_list_model, self.image_label_model)
+        self.scene = QGraphicsScene(self, self.label_view, self.image_label_model)
         self.view.setScene(self.scene)
 
 
@@ -245,29 +256,25 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(exitAction)
 
         self.currentItem = None
-        self.index = None
 
-        g = glob.glob(os.path.join(IMAGE_DIR, "*.png"))
-        g.sort()
-        self.loadImageFrames(g)
+        filenames = glob.glob(os.path.join(IMAGE_DIR, "*.png"))
+        filenames.sort()
+        #filenames = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open Files')[0]
+        self.loadImageFrames(filenames)
 
     def forward(self, event):
-        if self.index is not None:
-            if self.index < len(self.filenames):
-                self.index = self.index + 1
-                self.readImageFrame()
-        
+        if self.index < len(self.filenames):
+            self.index = self.index + 1
+            self.readImageFrame()
+    
         
     def backward(self, event):
-        if self.index is not None:
-            if self.index > 0:
-                self.index = self.index - 1
-                self.readImageFrame()
+        if self.index > 0:
+            self.index = self.index - 1
+            self.readImageFrame()
         
 
     def loadImageFrames(self, filenames=None):
-        if not filenames:
-            filenames = QtWidgets.QFileDialog.getOpenFileName(self, 'Open Files')[0]
         self.filenames = filenames
         self.index = 0
         self.readImageFrame()
