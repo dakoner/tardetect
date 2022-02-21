@@ -72,9 +72,7 @@ class ImageLabelView(QtWidgets.QListView):
         self.selectionModel().selectionChanged.connect(self.selection_changed)
 
     def selection_changed(self, selected, deselected):
-        print("selectioon changed:", selected)
         item = self.model().itemFromIndex(selected.indexes()[0])
-        print(item, item.rect)
         item.rect.setPen(QtGui.QPen(QtCore.Qt.red))
         if len(deselected.indexes()):
             item = self.model().itemFromIndex(deselected.indexes()[0])
@@ -131,6 +129,8 @@ class QGraphicsView(QtWidgets.QGraphicsView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.start = None
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
 class QGraphicsScene(QtWidgets.QGraphicsScene):
     def __init__(self, main_window, label_list_model, image_label_model, *args, **kwargs):
@@ -157,47 +157,50 @@ class QGraphicsScene(QtWidgets.QGraphicsScene):
                     # action = menu.exec_(self.mapToGlobal(position))
                     items = [self.label_list_model.item(i).text() 
                              for i in range(self.label_list_model.rowCount())]
-
+                    rect = QtCore.QRectF(QtCore.QPointF(0.,0.), end-start)
+                    box = QGraphicsRectItem(rect)
+                    box.setPen(QtGui.QPen(QtCore.Qt.green))
+                    color = QtGui.QColor(255, 255, 255, 30)
+                    box.setBrush(QtGui.QBrush(color))
+                    box.setPos(start)
+                    self.addItem(box)
                     label, okPressed = QtWidgets.QInputDialog.getItem(self.main_window, "Set label", 
                                                         "Label:", items, 0, False)
                     if okPressed and label != '':
-                        self.addLabelRect(start, end, label)
+                        item = QtGui.QStandardItem(label)
+                        item.rect = box
+                        rect.item = item
+                        self.image_label_model.appendRow(item)
+                        
+                        text = self.addSimpleText(label)
+                        text.setParentItem(box)
+                        text.setPos(rect.topLeft())
+                    else:
+                        self.removeItem(box)
 
         super().mouseReleaseEvent(event)
 
-    def addLabelRect(self, start, end, label):
-        rect = QtCore.QRectF(QtCore.QPointF(0.,0.), end-start)
-        box = QGraphicsRectItem(rect)
-        box.setPen(QtGui.QPen(QtCore.Qt.green))
-        color = QtGui.QColor(255, 255, 255, 30)
-        box.setBrush(QtGui.QBrush(color))
-        self.addItem(box)
-        item = QtGui.QStandardItem(label)
-        item.rect = box
-        rect.item = item
-        self.image_label_model.appendRow(item)
-
-        box.setPos(start)
-        text = self.addSimpleText(label)
-        text.setParentItem(box)
-        text.setPos(rect.topLeft())
         
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.label_list_model = QtGui.QStandardItemModel(self)
-        self.image_label_model = QtGui.QStandardItemModel(self)
+        self.statusBar().showMessage("Test")
         
         self.central_widget = QtWidgets.QWidget(self)
-        central_layout = QtWidgets.QVBoxLayout()
-        self.central_widget.setLayout(central_layout)
         self.setCentralWidget(self.central_widget)
+
+        self.label_list_model = QtGui.QStandardItemModel(self)
+        self.label_view = LabelListView(self.label_list_model)
+        self.image_label_model = QtGui.QStandardItemModel(self)     
+        self.image_label_view = ImageLabelView(self.image_label_model)
+        
 
         self.view = QGraphicsView()
         self.view.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
         self.scene = QGraphicsScene(self, self.label_list_model, self.image_label_model)
         self.view.setScene(self.scene)
+
 
         self.control_widget = QtWidgets.QWidget(self)
         self.forward_button = QtWidgets.QPushButton('forward')
@@ -209,13 +212,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.control_layout.addWidget(self.backward_button)
         self.control_widget.setLayout(self.control_layout)
 
-        self.label_view = LabelListView(self.label_list_model)
-        self.image_label_view = ImageLabelView(self.image_label_model)
+
+        self.list_widget = QtWidgets.QWidget(self)
+        list_layout = QtWidgets.QVBoxLayout()
+        list_layout.addWidget(self.label_view)
+        list_layout.addWidget(self.image_label_view)
+        self.list_widget.setLayout(list_layout)
+
+        central_layout = QtWidgets.QHBoxLayout()
+        self.central_widget.setLayout(central_layout)
+        central_layout.addWidget(self.list_widget)
 
         central_layout.addWidget(self.view)
         central_layout.addWidget(self.control_widget)
-        central_layout.addWidget(self.label_view)
-        central_layout.addWidget(self.image_label_view)
+
+
+
 
 
         exitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
@@ -261,6 +273,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.readImageFrame()
 
     def readImageFrame(self):
+        self.statusBar().showMessage("%d of %d frames" % (self.index, len(self.filenames)))
         filename = self.filenames[self.index]
         image = QtGui.QImage(filename, 'ARGB32')
         pixmap = QtGui.QPixmap(image)
