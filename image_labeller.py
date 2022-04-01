@@ -1,3 +1,4 @@
+import json
 import sys
 import glob
 import os
@@ -8,15 +9,10 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 NO_STATE = 0
 RESIZE = 1
 
-IMAGE_DIR=r"z:\tardigrade movies\Untitled Project"
+IMAGE_DIR=r"z:\tardigrade movies\outpy.1"
 
 #con = sqlite3.connect(os.path.join(IMAGE_DIR, "labels.sqlite")
 #labels = pandas.Dataframe(columns={"image", "label", "coords"})
-def get_main_window()       :
-    tlw = QtWidgets.qApp.topLevelWidgets()
-    for item in tlw:
-        if isinstance(item, MainWindow):
-            return item
 
 
 def createIcon(name, size=(25,25)):
@@ -50,6 +46,7 @@ class LabelListView(QtWidgets.QListView):
         addAction = menu.addAction("Add")
         loadAction = menu.addAction("Load")
         saveAction = menu.addAction("Save")
+        deleteAction = menu.addAction("Delete")
         action = menu.exec_(self.mapToGlobal(position))
         if action == addAction:
             self.addItem()
@@ -57,6 +54,8 @@ class LabelListView(QtWidgets.QListView):
             self.loadLabels()
         elif action == saveAction:
             self.saveLabels()
+        elif action == deleteAction:
+            self.deleteLabels()
 
     def loadLabels(self):
         filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Load labels')[0]
@@ -79,6 +78,18 @@ class ImageLabelView(QtWidgets.QListView):
         self.setModel(model)
         self.selectionModel().selectionChanged.connect(self.selection_changed)
 
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.openMenu) 
+        
+    def openMenu(self, position):
+        menu = QtWidgets.QMenu()
+        deleteAction = menu.addAction("Delete")
+        action = menu.exec_(self.mapToGlobal(position))
+        if action == deleteAction:
+            indexes = self.selectedIndexes()
+            for index in indexes:
+                self.model().removeRow(index.row())
+
     def selection_changed(self, selected, deselected):
         item = self.model().itemFromIndex(selected.indexes()[0])
         item.rect.setPen(QtGui.QPen(QtCore.Qt.red))
@@ -96,8 +107,7 @@ class QGraphicsRectItem(QtWidgets.QGraphicsRectItem):
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             if bool(event.modifiers() & QtCore.Qt.ControlModifier):
-                main_window = get_main_window()
-                main_window.scene.removeItem(self)
+                self.scene.removeItem(self)
                 event.accept()
                 return
             else:
@@ -152,6 +162,33 @@ class QGraphicsScene(QtWidgets.QGraphicsScene):
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
 
+    def _addBox(self, start, rect):
+        box = QGraphicsRectItem(rect)
+        color = QtGui.QColor(255, 255, 255, 30)
+        box.setBrush(QtGui.QBrush(color))
+        box.setPos(start)
+        self.addItem(box)
+        return box
+        
+    def _setBoxColor(self, box, color_name):
+        color = getattr(QtGui.QColorConstants.Svg, color_name)
+        box.setPen(QtGui.QPen(color))
+        return color
+
+    def _addBoxLabel(self, box, label):
+        item = QtGui.QStandardItem(label)
+        item.rect = box
+        box.item = item
+        self.image_label_model.appendRow(item)
+        
+
+    def _addTextLabel(self, label, color, box):
+        text = self.addSimpleText(label)
+        text.setPen(QtGui.QPen(color))
+        text.setBrush(QtGui.QBrush(color))
+        text.setParentItem(box)
+        text.setPos(box.rect().topRight())
+
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             if bool(event.modifiers() & QtCore.Qt.ControlModifier):
@@ -165,29 +202,25 @@ class QGraphicsScene(QtWidgets.QGraphicsScene):
                     # action = menu.exec_(self.mapToGlobal(position))
                     labels = [self.label_view.model().item(i).text() for i in range(self.label_view.model().rowCount())]
                     rect = QtCore.QRectF(QtCore.QPointF(0.,0.), end-start)
-                    box = QGraphicsRectItem(rect)
-                    color = QtGui.QColor(255, 255, 255, 30)
-                    box.setBrush(QtGui.QBrush(color))
-                    box.setPos(start)
-                    self.addItem(box)
-                    label, okPressed = QtWidgets.QInputDialog.getItem(self.main_window, "Set label", 
-                                                        "Label:", labels, 0, False)
-                    if okPressed and label != '':
-                        item = QtGui.QStandardItem(label)
-                        item.rect = box
-                        rect.item = item
-                        name = self.label_view.colors[labels.index(label)]
-                        color = getattr(QtGui.QColorConstants.Svg, name)
-                        box.setPen(QtGui.QPen(color))
-                        self.image_label_model.appendRow(item)
-                        
-                        text = self.addSimpleText(label)
-                        text.setPen(QtGui.QPen(color))
-                        text.setBrush(QtGui.QBrush(color))
-                        text.setParentItem(box)
-                        text.setPos(rect.topRight())
+                    box = self._addBox(start, rect)
+                    # if one of the label list items is selected, use that label.
+                    # otherwise, ask for a label
+                    rows =  self.label_view.selectionModel().selectedRows()
+                    if rows != []:
+                        row = rows[0]
+                        label = self.label_view.model().itemFromIndex(row).text()
+                        color = self._setBoxColor(box, self.label_view.colors[row.row()])
+                        self._addBoxLabel(box, label)
+                        self._addTextLabel(label, color, box)
                     else:
-                        self.removeItem(box)
+                        label, okPressed = QtWidgets.QInputDialog.getItem(self.main_window, "Set label", 
+                                                            "Label:", labels, 0, False)
+                        if okPressed and label != '':
+                            color = self._setBoxColor(box, self.label_view.colors[labels.index(label)])
+                            self._addBoxLabel(box, label)
+                            self._addTextLabel(label, color, box)
+                        else:
+                            pass
 
         super().mouseReleaseEvent(event)
 
@@ -263,12 +296,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.loadImageFrames(filenames)
 
     def forward(self, event):
+        self.saveLabels()
+        self.scene.clear()
+        self.image_label_model.removeRows( 0, self.image_label_view.model().rowCount())
+        self.currentItem = None
         if self.index < len(self.filenames):
+            # commit current labels
             self.index = self.index + 1
             self.readImageFrame()
     
         
     def backward(self, event):
+        self.saveLabels()
+        self.scene.clear()
+        self.image_label_model.removeRows( 0, self.image_label_view.model().rowCount())
+        self.currentItem = None
         if self.index > 0:
             self.index = self.index - 1
             self.readImageFrame()
@@ -281,6 +323,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def readImageFrame(self):
         self.statusBar().showMessage("%d of %d frames" % (self.index, len(self.filenames)))
+
         filename = self.filenames[self.index]
         image = QtGui.QImage(filename, 'ARGB32')
         pixmap = QtGui.QPixmap(image)
@@ -290,19 +333,35 @@ class MainWindow(QtWidgets.QMainWindow):
             self.currentItem = self.scene.addPixmap(pixmap)
         self.currentItem.filename = filename
         
+        labels_filename = filename + ".labels"
+        if os.path.exists(labels_filename):
+            labels = json.load(open(labels_filename))
+            for label, pos_x, pos_y, rect_x, rect_y, rect_width, rect_height in labels:
+                pos = QtCore.QPointF(pos_x, pos_y)
+                rect = QtCore.QRectF(rect_x, rect_y, rect_width, rect_height)
+                box = self.scene._addBox(pos, rect)
+                model = self.label_view.model()
+                matches = model.findItems(label)
+                if len(matches):
+                    match = matches[0]
+                    color = self.scene._setBoxColor(box, self.label_view.colors[match.row()])
+                    self.scene._addBoxLabel(box, label)
+                    self.scene._addTextLabel(label, color, box)
+
+        # if labels exist for frame, clear old label rects and load existing ones
+        
     def saveLabels(self):
         if self.currentItem:
             filename = self.currentItem.filename
             labels_filename = filename + ".labels"
             with open(labels_filename, "w") as f:
+                j = []
                 for item in self.scene.items():
                     if isinstance(item, QGraphicsRectItem):
-                        p = item.pos()
-                        w = self.currentItem.pixmap().width()
-                        h = self.currentItem.pixmap().height()
                         label = item.childItems()[0].text()
-                        f.write("np.array([[%f,%f,%f,%f]], dtype=np.float32),\n" % (p.x()/w, p.y()/h, (p.x()+item.rect().width())/w, (p.y()+item.rect().height())/h))
-
+                        r = item.rect()
+                        j.append([label, item.pos().x(), item.pos().y(), r.x(), r.y(), r.width(), r.height()])
+                json.dump(j, f)
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     app = QtWidgets.QApplication(sys.argv)
