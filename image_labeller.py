@@ -9,7 +9,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 NO_STATE = 0
 RESIZE = 1
 
-IMAGE_DIR=r"z:\tardigrade movies\outpy.1"
+IMAGE_DIR=r"z:\src\tardetect\tardigrade movies\outpy"
 
 #con = sqlite3.connect(os.path.join(IMAGE_DIR, "labels.sqlite")
 #labels = pandas.Dataframe(columns={"image", "label", "coords"})
@@ -64,7 +64,11 @@ class LabelListView(QtWidgets.QListView):
 
     def saveLabels(self):
         filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save labels')[0]
-        open(filename, "w").write('\n'.join([self.model().item(i).text() for i in range(self.model().rowCount())]))
+        labels = [self.model().item(i).text() for i in range(self.model().rowCount())]
+        if len(labels):
+            open(filename, "w").write('\n'.join())
+        else:
+            os.unlink(filename)
 
     def addItem(self):
         item = QtGui.QStandardItem("unknown")
@@ -302,6 +306,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         filenames = glob.glob(os.path.join(IMAGE_DIR, "*.png"))
         filenames.sort()
+        print(filenames)
         #filenames = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open Files')[0]
         self.loadImageFrames(filenames)
         self.slider.setMaximum(len(filenames)-1)
