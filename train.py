@@ -2,8 +2,9 @@ import tensorflow as tf
 import random
 # Fine-tune!
 from model import build_model_and_restore_weights, prepare_data_for_training
-from util import get_gt_boxes, load_and_visualize_images, visualize_tardigrades
+from util import visualize_tardigrades, load_images
 from classes import num_classes, category_index
+from make_dataset import get_dataset
 
 BASE=r"z:\src"
 
@@ -101,12 +102,14 @@ def fine_tune(detection_model, gt_box_tensors, gt_classes_one_hot_tensors, train
   print('Done fine-tuning!')
 
 
-detection_model = build_model_and_restore_weights()
 
-train_images_np = load_and_visualize_images()
-gt_boxes = get_gt_boxes()
+image_label_files = get_dataset()
+train_images_np = load_images(image_label_files.keys())
+gt_boxes = list(image_label_files.values())
 dummy_scores, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors = prepare_data_for_training(train_images_np, gt_boxes, num_classes)
 visualize_tardigrades(train_images_np, gt_boxes, category_index, dummy_scores)
+
+detection_model = build_model_and_restore_weights()
 fine_tune(detection_model, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors)
 ckpt = tf.compat.v2.train.Checkpoint(model=detection_model)
 ckpt.save("tardigrade-1")
