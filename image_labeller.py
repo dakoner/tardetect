@@ -245,6 +245,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.scene = QGraphicsScene(self, self.label_view, self.image_label_model)
         self.view.setScene(self.scene)
 
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
+        self.slider.setMinimum(0)
+        self.slider.valueChanged[int].connect(self.sliderChanged)
+
+
+        self.view_widget = QtWidgets.QWidget(self)
+        view_layout = QtWidgets.QVBoxLayout()
+        view_layout.addWidget(self.view)
+        view_layout.addWidget(self.slider)
+        self.view_widget.setLayout(view_layout)
 
         self.control_widget = QtWidgets.QWidget(self)
         self.forward_button = QtWidgets.QPushButton('forward')
@@ -267,7 +277,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.central_widget.setLayout(central_layout)
         central_layout.addWidget(self.list_widget)
 
-        central_layout.addWidget(self.view)
+        central_layout.addWidget(self.view_widget)
         central_layout.addWidget(self.control_widget)
 
 
@@ -294,6 +304,17 @@ class MainWindow(QtWidgets.QMainWindow):
         filenames.sort()
         #filenames = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open Files')[0]
         self.loadImageFrames(filenames)
+        self.slider.setMaximum(len(filenames)-1)
+
+
+    def sliderChanged(self, value):
+        self.saveLabels()
+        self.scene.clear()
+        self.image_label_model.removeRows( 0, self.image_label_view.model().rowCount())
+        self.currentItem = None
+        self.index = value
+        print(value)
+        self.readImageFrame()
 
     def forward(self, event):
         self.saveLabels()
@@ -362,6 +383,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         r = item.rect()
                         j.append([label, item.pos().x(), item.pos().y(), r.x(), r.y(), r.width(), r.height()])
                 json.dump(j, f)
+
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     app = QtWidgets.QApplication(sys.argv)
