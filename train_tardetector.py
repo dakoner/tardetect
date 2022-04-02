@@ -18,6 +18,7 @@ import numpy as np
 from six import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 import tensorflow as tf
+import cv2
 
 from object_detection.utils import config_util
 from object_detection.utils import visualization_utils as viz_utils
@@ -82,57 +83,51 @@ def plot_detections(image_np,
     matplotlib.use('tkagg')
     plt.imshow(image_np_with_annotations)
 
+def get_images_with_tardigrade_labels():
+  p = r"z:\tardigrade movies\outpy.1\*.labels"
+  g = glob.glob(p)
+  image_label_files = []
+  for i in g:
+    l = open(i).readlines()
+    e = eval('\n'.join(l))
+    if len([l for label in e if label[0] == 'tardigrade']):
+      image_label_files.append(i)
+  print(image_label_files)
+  return image_label_files
+  
+
 def load_and_visualize_images():
-    
-  # Load images and visualize
-  train_image_dir = os.path.join(BASE, 'tensorflow/models/research/object_detection/test_images/ducky/train/')
   train_images_np = []
-  for i in range(1, 6):
-    image_path = os.path.join(train_image_dir, 'robertducky' + str(i) + '.jpg')
-    train_images_np.append(load_image_into_numpy_array(image_path))
-
-  # matplotlib.use('tkagg')
-
-  # plt.rcParams['axes.grid'] = False
-  # plt.rcParams['xtick.labelsize'] = False
-  # plt.rcParams['ytick.labelsize'] = False
-  # plt.rcParams['xtick.top'] = False
-  # plt.rcParams['xtick.bottom'] = False
-  # plt.rcParams['ytick.left'] = False
-  # plt.rcParams['ytick.right'] = False
-  # plt.rcParams['figure.figsize'] = [14, 7]
-
-  # for idx, train_image_np in enumerate(train_images_np):
-  #   plt.subplot(2, 3, idx+1)
-  #   plt.imshow(train_image_np)
-  # plt.show()
-
+  image_label_files = get_images_with_tardigrade_labels()
+  for image_label_file in image_label_files:
+    train_images_np.append(load_image_into_numpy_array(image_label_file.removesuffix('.labels')))
   return train_images_np
 
 def get_gt_boxes():
   # Annotate images with bounding boxes
   # gt_boxes = []
   # colab_utils.annotate(train_images_np, box_storage_pointer=gt_boxes)
-  gt_boxes = [
-              np.array([[0.436, 0.591, 0.629, 0.712]], dtype=np.float32),
-              np.array([[0.539, 0.583, 0.73, 0.71]], dtype=np.float32),
-              np.array([[0.464, 0.414, 0.626, 0.548]], dtype=np.float32),
-              np.array([[0.313, 0.308, 0.648, 0.526]], dtype=np.float32),
-              np.array([[0.256, 0.444, 0.484, 0.629]], dtype=np.float32)
-  ]
+
+  image_label_files = get_images_with_tardigrade_labels()
+  gt_boxes = []
+  for image_label_file in image_label_files:
+    image_path = image_label_file.removesuffix('.labels')
+    d = cv2.imread(image_path)
+    l = open(image_label_file).readlines()
+    e = eval('\n'.join(l))
+    all = []
+    for label in e:
+      if label[0] == 'tardigrade':
+        y1, x1 = label[1]/640, label[2]/480
+        y2, x2 = (label[1]+label[5])/640, (label[2]+label[6])/480
+        all.append(np.array([x1, y1, x2, y2], dtype=np.float32))
+    gt_boxes.append(np.array(all))
+  print(gt_boxes)
   return gt_boxes
 
 # Prepare data for training
 
 def prepare_data_for_training(train_images_np, gt_boxes):
-  # By convention, our non-background classes start counting at 1.  Given
-  # that we will be predicting just one class, we will therefore assign it a
-  # `class id` of 1.
-  duck_class_id = 1
-  num_classes = 1
-
-  category_index = {duck_class_id: {'id': duck_class_id, 'name': 'rubber_ducky'}}
-
   # Convert class labels to one-hot; convert everything to tensors.
   # The `label_id_offset` here shifts all classes by a certain number of indices;
   # we do this here so that the model receives one-hot labels where non-background
@@ -155,14 +150,14 @@ def prepare_data_for_training(train_images_np, gt_boxes):
         zero_indexed_groundtruth_classes, num_classes))
   print('Done prepping data.')
   dummy_scores = np.array([1.0], dtype=np.float32)  # give boxes a score of 100%
-  return category_index, dummy_scores, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors
+  return dummy_scores, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors
 
-# Visualize the rubber duckies as a sanity check
-def visualize_rubber_duckies(category_index, dummy_scores):
+# Visualize the rubber tardigrades as a sanity check
+def visualize_rubber_tardigrades(category_index, dummy_scores):
   matplotlib.use('tkagg')
   plt.figure(figsize=(30, 15))
-  for idx in range(5):
-    plt.subplot(2, 3, idx+1)
+  for idx in range(len(train_images_np)-1):
+    plt.subplot(4, 4, idx+1)
     plot_detections(
         train_images_np[idx],
         gt_boxes[idx],
@@ -185,13 +180,13 @@ def build_model_and_restore_weights():
   print('Building model and restoring weights for fine-tuning...', flush=True)
   num_classes = 1
   pipeline_config = os.path.join(BASE,'tensorflow/models/research/object_detection/configs/tf2/ssd_resnet50_v1_fpn_640x640_coco17_tpu-8.config')
-  checkpoint_path = os.path.join(BASE, 'tensorflow/models/research/object_detection/test_data/checkpoint/ckpt-0')
+  checkpoint_path = os.path.join("ssd_resnet50_v1_fpn_640x640_coco17_tpu-8/checkpoint", 'ckpt-0')
 
   # Load pipeline config and build a detection model.
   #
   # Since we are working off of a COCO architecture which predicts 90
   # class slots by default, we override the `num_classes` field here to be just
-  # one (for our new rubber ducky class).
+  # one (for our new tardigrade class).
   configs = config_util.get_configs_from_pipeline_file(pipeline_config)
   model_config = configs['model']
   model_config.ssd.num_classes = num_classes
@@ -235,7 +230,7 @@ def fine_tune(detection_model, gt_box_tensors, gt_classes_one_hot_tensors, train
   # fit more examples in memory if we wanted to.
   batch_size = 4
   learning_rate = 0.01
-  num_batches = 100
+  num_batches = 250
 
   # Select variables in top layers to fine-tune.
   trainable_variables = detection_model.trainable_variables
@@ -322,10 +317,12 @@ def fine_tune(detection_model, gt_box_tensors, gt_classes_one_hot_tensors, train
 # Run inference on the test set and assemble into a movie
 def run_inference(detection_model):
     
-  test_image_dir = os.path.join(BASE, 'tensorflow/models/research/object_detection/test_images/ducky/test/')
+  test_image_dir = os.path.join(r"z:\tardigrade movies\outpy.1")
   test_images_np = []
-  for i in range(1, 50):
-    image_path = os.path.join(test_image_dir, 'out' + str(i) + '.jpg')
+
+  for i in range(1, 500):#len(glob.glob(os.path.join(test_image_dir, 'out*.png')))):
+    print(i)
+    image_path = os.path.join(test_image_dir, 'out%04d.png' % i)
     test_images_np.append(np.expand_dims(
         load_image_into_numpy_array(image_path), axis=0))
 
@@ -367,7 +364,7 @@ def run_inference(detection_model):
 def build_animation():
   imageio.plugins.freeimage.download()
 
-  anim_file = 'duckies_test.gif'
+  anim_file = 'tardigrades_test.gif'
 
   filenames = glob.glob('gif_frame_*.jpg')
   filenames = sorted(filenames)
@@ -381,12 +378,27 @@ def build_animation():
 
   #display(IPyImage(open(anim_file, 'rb').read()))
 
+# By convention, our non-background classes start counting at 1.  Given
+# that we will be predicting just one class, we will therefore assign it a
+# `class id` of 1.
+tardigrade_class_id = 1
+num_classes = 1
 
-train_images_np = load_and_visualize_images()
-gt_boxes = get_gt_boxes()
-category_index, dummy_scores, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors = prepare_data_for_training(train_images_np, gt_boxes)
-#visualize_rubber_duckies(category_index, dummy_scores)
+category_index = {tardigrade_class_id: {'id': tardigrade_class_id, 'name': 'tardigrade'}}
+
+
+# train_images_np = load_and_visualize_images()
+# gt_boxes = get_gt_boxes()
+# dummy_scores, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors = prepare_data_for_training(train_images_np, gt_boxes)
+# visualize_rubber_tardigrades(category_index, dummy_scores)
+
 detection_model = build_model_and_restore_weights()
-fine_tune(detection_model, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors)
+ckpt = tf.compat.v2.train.Checkpoint(model=detection_model)
+#ckpt.save("foo-0")
+
+# fine_tune(detection_model, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors)
+ckpt.restore("bar-0-2")
+#ckpt.restore("foo-0-1")
+
 run_inference(detection_model)
 build_animation()
