@@ -3,7 +3,7 @@ import cv2
 import glob
 import os
 from util import load_image_into_numpy_array
-
+from classes import name_to_id
 
 def get_images_with_labels(p):
     g = glob.glob(os.path.join(p, "*.labels"))
@@ -13,6 +13,7 @@ def get_images_with_labels(p):
         if l != []:
             e = eval('\n'.join(l))
             gt_boxes = []
+            gt_classes = []
             if e != []:
                 imf = i.removesuffix(".labels")
                 im = cv2.imread(imf)
@@ -22,7 +23,9 @@ def get_images_with_labels(p):
                     y1, x1 = label[1]/im.shape[1], label[2]/im.shape[0]
                     y2, x2 = (label[1]+label[5])/im.shape[1], (label[2]+label[6])/im.shape[0]
                     gt_boxes.append(np.array([x1, y1, x2, y2], dtype=np.float32))
-                image_label_files[imf] = np.array(gt_boxes)
+                    gt_classes.append(name_to_id[label[0]])
+                image_label_files[imf] = np.array(gt_boxes), np.array(gt_classes)
+
     return image_label_files
   
 
@@ -40,7 +43,7 @@ def get_dataset():
         r"c:\users\dek\Desktop\tardigrade movies\outpy.6",
         r"c:\users\dek\Desktop\tardigrade movies\test",
         # causes errors
-        #r"c:\users\dek\Desktop\tardigrade movies\tracking"
+        r"c:\users\dek\Desktop\tardigrade movies\tracking"
         ]
 
     for path in paths:

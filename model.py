@@ -37,7 +37,7 @@ def prepare_data_for_training(train_images_np, gt_boxes, num_classes):
     gt_classes_one_hot_tensors.append(tf.one_hot(
         zero_indexed_groundtruth_classes, num_classes))
   print('Done prepping data.')
-  dummy_scores = np.array([1.0], dtype=np.float32)  # give boxes a score of 100%
+  dummy_scores = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], dtype=np.float32)  # give boxes a score of 100%
   return dummy_scores, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors
 
 
