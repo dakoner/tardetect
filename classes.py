@@ -32,3 +32,14 @@ name_to_id = {
     'animacule': 6,
     'junk': 7
 }
+
+
+id_to_name = {
+    1: 'tardigrade',
+    2: 'algae',
+    3: 'egg',
+    4: 'moult',
+    5: 'vorticella',
+    6: 'animacule',
+    7: 'junk',
+}
