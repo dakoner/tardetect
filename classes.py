@@ -11,10 +11,10 @@ vorticella_class_id = 5
 animacule_class_id = 6
 junk_class_id = 7
 
-num_classes = 1
+num_classes = 7
 category_index = {
     tardigrade_class_id: {'id': tardigrade_class_id, 'name': 'tardigrade'},
-     algae_class_id: {'id': algae_class_id, 'name': 'algae'},
+    algae_class_id: {'id': algae_class_id, 'name': 'algae'},
      egg_class_id: {'id': egg_class_id, 'name': 'egg'},
      moult_class_id: {'id': moult_class_id, 'name': 'moult'},
      vorticella_class_id: {'id': vorticella_class_id, 'name': 'vorticella'},
