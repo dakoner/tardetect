@@ -23,8 +23,6 @@ def get_images_with_labels(p):
                     y2, x2 = (label[1]+label[5])/im.shape[1], (label[2]+label[6])/im.shape[0]
                     gt_boxes.append(np.array([x1, y1, x2, y2], dtype=np.float32))
                 image_label_files[imf] = np.array(gt_boxes)
-                print(imf, gt_boxes )
-    print(image_label_files)
     return image_label_files
   
 
