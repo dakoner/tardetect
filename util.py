@@ -73,7 +73,7 @@ def plot_detections(image_np,
     plt.imshow(image_np_with_annotations)
 
 # Visualize the rubber tardigrades as a sanity check
-def visualize_tardigrades(train_images_np, gt_boxes, category_index, dummy_scores):
+def visualize_tardigrades(train_images_np, gt_boxes, gt_classes, category_index, dummy_scores):
   matplotlib.use('qtagg')
   plt.figure(figsize=(30, 15))
   for idx in range(len(train_images_np)-1):
@@ -82,6 +82,6 @@ def visualize_tardigrades(train_images_np, gt_boxes, category_index, dummy_score
     plot_detections(
         train_images_np[idx],
         gt_boxes[idx],
-        np.ones(shape=[gt_boxes[idx].shape[0]], dtype=np.int32),
+        np.array(gt_classes[idx], dtype=np.int32),
         dummy_scores, category_index)
   plt.show()

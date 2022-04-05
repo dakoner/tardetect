@@ -15,7 +15,7 @@ from object_detection.utils import config_util
 from object_detection.utils import visualization_utils as viz_utils
 from object_detection.builders import model_builder
 
-def prepare_data_for_training(train_images_np, gt_boxes, num_classes):
+def prepare_data_for_training(train_images_np, gt_boxes, gt_classes, num_classes):
   # Convert class labels to one-hot; convert everything to tensors.
   # The `label_id_offset` here shifts all classes by a certain number of indices;
   # we do this here so that the model receives one-hot labels where non-background
@@ -27,13 +27,13 @@ def prepare_data_for_training(train_images_np, gt_boxes, num_classes):
   gt_classes_one_hot_tensors = []
   gt_box_tensors = []
 
-  for (train_image_np, gt_box_np) in zip(
-      train_images_np, gt_boxes):
+  for (train_image_np, gt_box_np, gt_class) in zip(
+      train_images_np, gt_boxes, gt_classes):
     train_image_tensors.append(tf.expand_dims(tf.convert_to_tensor(
         train_image_np, dtype=tf.float32), axis=0))
     gt_box_tensors.append(tf.convert_to_tensor(gt_box_np, dtype=tf.float32))
     zero_indexed_groundtruth_classes = tf.convert_to_tensor(
-        np.ones(shape=[gt_box_np.shape[0]], dtype=np.int32) - label_id_offset)
+        np.array(gt_class, dtype=np.int32) - label_id_offset)
     gt_classes_one_hot_tensors.append(tf.one_hot(
         zero_indexed_groundtruth_classes, num_classes))
   print('Done prepping data.')
