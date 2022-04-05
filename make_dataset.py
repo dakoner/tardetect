@@ -16,6 +16,8 @@ def get_images_with_tardigrade_labels(p):
             if e != []:
                 imf = i.removesuffix(".labels")
                 im = cv2.imread(imf)
+                if im is None:
+                    continue
                 for label in e:
                     y1, x1 = label[1]/im.shape[1], label[2]/im.shape[0]
                     y2, x2 = (label[1]+label[5])/im.shape[1], (label[2]+label[6])/im.shape[0]
@@ -27,10 +29,10 @@ def get_images_with_tardigrade_labels(p):
 def get_dataset():
         
     image_label_files = {}
-    path = r"z:\src\tardetect\tardigrade movies\outpy"
+    path = r"c:\users\dek\desktop\tardigrade movies\outpy"
     image_label_files.update(get_images_with_tardigrade_labels(path))
 
-    path = r"z:\src\tardetect\tardigrade movies\outpy.1"
+    path = r"c:\users\dek\desktop\tardetect\tardigrade movies\outpy.1"
     image_label_files.update(get_images_with_tardigrade_labels(path))
 
     return image_label_files
