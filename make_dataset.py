@@ -42,7 +42,6 @@ def get_dataset():
         r"c:\users\dek\Desktop\tardigrade movies\outpy.5",
         r"c:\users\dek\Desktop\tardigrade movies\outpy.6",
         r"c:\users\dek\Desktop\tardigrade movies\test",
-        # causes errors
         r"c:\users\dek\Desktop\tardigrade movies\tracking"
         ]
 
