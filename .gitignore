@@ -1,2 +1,10 @@
 tardigrade movies
 ssd_resnet50_v1_fpn_640x640_coco17_tpu-8
+ssd_resnet50_v1_fpn_640x640_coco17_tpu-8
+centernet_mobilenetv2_fpn_od
+centernet_resnet50_v2_512x512_coco17_tpu-8
+centernet_resnet50_v2_512x512_kpts_coco17_tpu-8
+ssd_mobilenet_v2_320x320_coco17_tpu-8
+.ipynb_checkpoints
+__pycache__
+models
