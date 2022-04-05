@@ -48,11 +48,10 @@ BASE=r'z:\src'
 #mv ssd_resnet50_v1_fpn_640x640_coco17_tpu-8/checkpoint models/research/object_detection/test_data/
 
 # build model and restore weights for fine tuning
-def build_model_and_restore_weights():
+def build_model_and_restore_weights(num_classes):
   tf.keras.backend.clear_session()
 
   print('Building model and restoring weights for fine-tuning...', flush=True)
-  num_classes = 1
   pipeline_config = os.path.join(BASE,'tensorflow/models/research/object_detection/configs/tf2/ssd_resnet50_v1_fpn_640x640_coco17_tpu-8.config')
   checkpoint_path = os.path.join("ssd_resnet50_v1_fpn_640x640_coco17_tpu-8/checkpoint", 'ckpt-0')
 
@@ -60,7 +59,7 @@ def build_model_and_restore_weights():
   #
   # Since we are working off of a COCO architecture which predicts 90
   # class slots by default, we override the `num_classes` field here to be just
-  # one (for our new tardigrade class).
+  # one (for our new tardigrade-related classes).
   configs = config_util.get_configs_from_pipeline_file(pipeline_config)
   model_config = configs['model']
   model_config.ssd.num_classes = num_classes

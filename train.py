@@ -109,7 +109,7 @@ gt_boxes = list(image_label_files.values())
 dummy_scores, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors = prepare_data_for_training(train_images_np, gt_boxes, num_classes)
 visualize_tardigrades(train_images_np, gt_boxes, category_index, dummy_scores)
 
-detection_model = build_model_and_restore_weights()
+detection_model = build_model_and_restore_weights(num_classes)
 fine_tune(detection_model, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors)
 ckpt = tf.compat.v2.train.Checkpoint(model=detection_model)
 ckpt.save("tardigrade-1")
