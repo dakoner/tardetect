@@ -6,7 +6,6 @@ from util import visualize_tardigrades, load_images
 from classes import num_classes, category_index
 from make_dataset import get_dataset
 
-BASE=r"z:\src"
 
 
 
@@ -17,9 +16,9 @@ def fine_tune(detection_model, gt_box_tensors, gt_classes_one_hot_tensors, train
   # These parameters can be tuned; since our training set has 5 images
   # it doesn't make sense to have a much larger batch size, though we could
   # fit more examples in memory if we wanted to.
-  batch_size = 16
+  batch_size = 2
   learning_rate = 0.01
-  num_batches = 100
+  num_batches = 10000
 
   # Select variables in top layers to fine-tune.
   trainable_variables = detection_model.trainable_variables
@@ -81,7 +80,7 @@ def fine_tune(detection_model, gt_box_tensors, gt_classes_one_hot_tensors, train
   print('Start fine-tuning!', flush=True)
   for idx in range(num_batches):
     # Grab keys for a random subset of examples
-    all_keys = list(range(len(train_images_np)))
+    all_keys = list(range(len(train_images)))
     random.shuffle(all_keys)
     example_keys = all_keys[:batch_size]
 
@@ -104,12 +103,12 @@ def fine_tune(detection_model, gt_box_tensors, gt_classes_one_hot_tensors, train
 
 
 image_label_files = get_dataset()
-train_images_np = load_images(image_label_files.keys())
+train_images = load_images(image_label_files.keys())
 gt_boxes, gt_classes = zip(*image_label_files.values())
-dummy_scores, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors = prepare_data_for_training(train_images_np, gt_boxes, gt_classes, num_classes)
-visualize_tardigrades(train_images_np, gt_boxes, gt_classes, category_index, dummy_scores)
+dummy_scores, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors = prepare_data_for_training(train_images, gt_boxes, gt_classes, num_classes)
+#visualize_tardigrades(train_images, gt_boxes, gt_classes, category_index, dummy_scores)
 
 detection_model = build_model_and_restore_weights(num_classes)
 fine_tune(detection_model, gt_box_tensors, gt_classes_one_hot_tensors, train_image_tensors)
 ckpt = tf.compat.v2.train.Checkpoint(model=detection_model)
-ckpt.save("tardigrade-1")
+ckpt.save("tardigrade-4")

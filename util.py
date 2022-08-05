@@ -30,10 +30,10 @@ def load_image_into_numpy_array(path):
 
 
 def load_images(image_files):
-    train_images_np = []
-    for image_file in image_files:
-        train_images_np.append(load_image_into_numpy_array(image_file))
-    return np.array(train_images_np)
+    train_images = []
+    for  image_file in image_files:
+      train_images.append(load_image_into_numpy_array(image_file))
+    return train_images
 
 def plot_detections(image_np,
                     boxes,
@@ -73,14 +73,15 @@ def plot_detections(image_np,
     plt.imshow(image_np_with_annotations)
 
 # Visualize the rubber tardigrades as a sanity check
-def visualize_tardigrades(train_images_np, gt_boxes, gt_classes, category_index, dummy_scores):
+def visualize_tardigrades(filenames, train_images, gt_boxes, gt_classes, category_index, dummy_scores):
   matplotlib.use('qtagg')
   plt.figure(figsize=(30, 15))
-  for idx in range(len(train_images_np)-1):
-    n = math.ceil(math.sqrt(len(train_images_np)))    
+  for idx in range(len(train_images)-1):
+    n = math.ceil(math.sqrt(len(train_images)))    
     plt.subplot(n, n, idx+1)
+    print(idx, filenames[idx] )
     plot_detections(
-        train_images_np[idx],
+        train_images[idx],
         gt_boxes[idx],
         np.array(gt_classes[idx], dtype=np.int32),
         dummy_scores, category_index)

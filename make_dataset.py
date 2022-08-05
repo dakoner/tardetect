@@ -5,6 +5,9 @@ import os
 from util import load_image_into_numpy_array
 from classes import name_to_id
 
+BASE="/srv/media/Movies/Science/tardigrade movies/"
+#BASE="x:/Science/tardigrade movies"
+
 def get_images_with_labels(p):
     g = glob.glob(os.path.join(p, "*.labels"))
     image_label_files = {}
@@ -34,19 +37,24 @@ def get_dataset():
     image_label_files = {}
 
     paths = [
-        r"c:\users\dek\Desktop\tardigrade movies\outpy",
-        r"c:\users\dek\Desktop\tardigrade movies\outpy.1",
-        r"c:\users\dek\Desktop\tardigrade movies\outpy.2",
-        r"c:\users\dek\Desktop\tardigrade movies\outpy.3",
-        r"c:\users\dek\Desktop\tardigrade movies\outpy.4",
-        r"c:\users\dek\Desktop\tardigrade movies\outpy.5",
-        r"c:\users\dek\Desktop\tardigrade movies\outpy.6",
-        r"c:\users\dek\Desktop\tardigrade movies\test",
-        r"c:\users\dek\Desktop\tardigrade movies\tracking"
+        "outpy.1",
+        "outpy.2",
+        "outpy.3",
+        "outpy.4",
+        "outpy.5",
+        "outpy.6",
+        "outpy.7",
+        "outpy.8",
+        "outpy.9",
+        "moult.eggs.1",
+        "moult",
+        "moult_egg",
+        "test",
+        "tracking"
         ]
 
     for path in paths:
-        image_label_files.update(get_images_with_labels(path))
+        image_label_files.update(get_images_with_labels(os.path.join(BASE, path)))
 
 
     return image_label_files

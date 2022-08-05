@@ -42,7 +42,8 @@ def prepare_data_for_training(train_images_np, gt_boxes, gt_classes, num_classes
 
 
 
-BASE=r'z:\src'
+#BASE="z:/src"
+BASE="/home/dek/src"
 #wget http://download.tensorflow.org/models/object_detection/tf2/20200711/ssd_resnet50_v1_fpn_640x640_coco17_tpu-8.tar.gz
 #tar -xf ssd_resnet50_v1_fpn_640x640_coco17_tpu-8.tar.gz
 #mv ssd_resnet50_v1_fpn_640x640_coco17_tpu-8/checkpoint models/research/object_detection/test_data/
@@ -54,6 +55,7 @@ def build_model_and_restore_weights(num_classes):
   print('Building model and restoring weights for fine-tuning...', flush=True)
   pipeline_config = os.path.join(BASE,'tensorflow/models/research/object_detection/configs/tf2/ssd_resnet50_v1_fpn_640x640_coco17_tpu-8.config')
   checkpoint_path = os.path.join("ssd_resnet50_v1_fpn_640x640_coco17_tpu-8/checkpoint", 'ckpt-0')
+  #checkpoint_path = './tardigrade-2-1'
 
   # Load pipeline config and build a detection model.
   #

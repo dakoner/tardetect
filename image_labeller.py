@@ -9,7 +9,8 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 NO_STATE = 0
 RESIZE = 1
 
-IMAGE_DIR=r"z:\src\tardetect\tardigrade movies\outpy"
+IMAGE_DIR=sys.argv[1]
+#r"c:\users\dek\desktop\tardigrade movies\outpy"
 
 #con = sqlite3.connect(os.path.join(IMAGE_DIR, "labels.sqlite")
 #labels = pandas.Dataframe(columns={"image", "label", "coords"})
@@ -348,7 +349,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.readImageFrame()
 
     def readImageFrame(self):
-        self.statusBar().showMessage("%d of %d frames" % (self.index, len(self.filenames)))
+        self.statusBar().showMessage("%d of %d frames (%s)" % (self.index, len(self.filenames), self.filenames[self.index]))
 
         filename = self.filenames[self.index]
         image = QtGui.QImage(filename, 'ARGB32')
